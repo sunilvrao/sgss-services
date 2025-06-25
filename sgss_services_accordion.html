@@ -1,0 +1,1033 @@
+<!-- 
+    Prompts - 
+    1. Can you create a accordion tab widget that i can plug into my odoo website
+    2. Awesome.  Can you add tabs in each of the accordion content.  The tab content should have a table with header.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accordion Widget for Odoo</title>
+    <style>
+        .odoo-accordion {
+            max-width: 800px;
+            margin: 20px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .accordion-item {
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .accordion-item:last-child {
+            border-bottom: none;
+        }
+
+        .accordion-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 18px 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .accordion-header:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            transform: translateY(-1px);
+        }
+
+        .accordion-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .accordion-header:hover::before {
+            left: 100%;
+        }
+
+        .accordion-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            z-index: 1;
+        }
+
+        .accordion-icon {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+            z-index: 1;
+        }
+
+        .accordion-item.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+        }
+
+        .accordion-item.active .accordion-content {
+            max-height: 500px;
+        }
+
+        .accordion-body {
+            padding: 24px;
+            line-height: 1.6;
+            color: #4a5568;
+            border-left: 4px solid #667eea;
+            background: linear-gradient(to right, #f8fafc, #ffffff);
+        }
+
+        .accordion-body h4 {
+            color: #2d3748;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .accordion-body p {
+            margin-bottom: 12px;
+        }
+
+        .accordion-body ul {
+            padding-left: 20px;
+        }
+
+        .accordion-body li {
+            margin-bottom: 8px;
+        }
+
+        /* Animation for smooth opening */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .accordion-item.active .accordion-body {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        /* Tab Styles */
+        .tab-container {
+            margin-top: 20px;
+        }
+
+        .tab-nav {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            color: #475569;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .data-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .price {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .odoo-accordion {
+                margin: 10px;
+                border-radius: 6px;
+            }
+            
+            .accordion-header {
+                padding: 16px 20px;
+            }
+            
+            .accordion-title {
+                font-size: 15px;
+            }
+            
+            .accordion-body {
+                padding: 20px;
+            }
+
+            .tab-nav {
+                flex-wrap: wrap;
+            }
+
+            .tab-button {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            .data-table {
+                font-size: 12px;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 12px;
+            }
+
+            .data-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="odoo-accordion" id="main-accordion">
+        <div class="accordion-item">
+            <div class="accordion-header">
+                <h3 class="accordion-title">Product Features</h3>
+                <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <h4>Key Features Overview</h4>
+                    <p>Explore our comprehensive product features across different categories:</p>
+                    
+                    <div class="tab-container">
+                        <div class="tab-nav">
+                            <button class="tab-button active" data-tab="features-core">Core Features</button>
+                            <button class="tab-button" data-tab="features-advanced">Advanced Tools</button>
+                            <button class="tab-button" data-tab="features-integrations">Integrations</button>
+                        </div>
+                        
+                        <div class="tab-content active" id="features-core">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Description</th>
+                                        <th>Availability</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Dashboard Analytics</td>
+                                        <td>Real-time business insights and KPI tracking</td>
+                                        <td>All Plans</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>User Management</td>
+                                        <td>Role-based access control and permissions</td>
+                                        <td>Pro & Enterprise</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mobile App</td>
+                                        <td>Native iOS and Android applications</td>
+                                        <td>All Plans</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Data Export</td>
+                                        <td>Export data in multiple formats (CSV, PDF, Excel)</td>
+                                        <td>Starter & Above</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="features-advanced">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Advanced Feature</th>
+                                        <th>Capability</th>
+                                        <th>Plan Required</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>AI-Powered Analytics</td>
+                                        <td>Machine learning insights and predictions</td>
+                                        <td>Enterprise</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Custom Workflows</td>
+                                        <td>Automated business process management</td>
+                                        <td>Professional & Enterprise</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Advanced Reporting</td>
+                                        <td>Custom report builder with 50+ templates</td>
+                                        <td>Professional & Enterprise</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>API Rate Limiting</td>
+                                        <td>Enhanced API performance and security</td>
+                                        <td>Enterprise</td>
+                                        <td><span class="status-badge status-pending">Beta</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="features-integrations">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Integration</th>
+                                        <th>Platform</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Salesforce CRM</td>
+                                        <td>Customer Relationship Management</td>
+                                        <td>Two-way Sync</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>QuickBooks Online</td>
+                                        <td>Accounting & Finance</td>
+                                        <td>Data Import</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Slack Workspace</td>
+                                        <td>Team Communication</td>
+                                        <td>Notifications</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Microsoft Teams</td>
+                                        <td>Collaboration Platform</td>
+                                        <td>Bot Integration</td>
+                                        <td><span class="status-badge status-pending">Coming Soon</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">
+                <h3 class="accordion-title">Pricing Plans</h3>
+                <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <h4>Flexible Pricing Options</h4>
+                    <p>Choose the plan that fits your business needs with detailed feature comparison:</p>
+                    
+                    <div class="tab-container">
+                        <div class="tab-nav">
+                            <button class="tab-button active" data-tab="pricing-monthly">Monthly Plans</button>
+                            <button class="tab-button" data-tab="pricing-annual">Annual Plans</button>
+                            <button class="tab-button" data-tab="pricing-enterprise">Enterprise</button>
+                        </div>
+                        
+                        <div class="tab-content active" id="pricing-monthly">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Plan</th>
+                                        <th>Users</th>
+                                        <th>Storage</th>
+                                        <th>Price</th>
+                                        <th>Support</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Starter</strong></td>
+                                        <td>Up to 5 users</td>
+                                        <td>10 GB</td>
+                                        <td><span class="price">$29/month</span></td>
+                                        <td>Email Support</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Professional</strong></td>
+                                        <td>Up to 25 users</td>
+                                        <td>100 GB</td>
+                                        <td><span class="price">$79/month</span></td>
+                                        <td>Priority Support</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Business</strong></td>
+                                        <td>Up to 100 users</td>
+                                        <td>500 GB</td>
+                                        <td><span class="price">$149/month</span></td>
+                                        <td>Phone & Chat Support</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="pricing-annual">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Plan</th>
+                                        <th>Users</th>
+                                        <th>Storage</th>
+                                        <th>Monthly Price</th>
+                                        <th>Annual Savings</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Starter Annual</strong></td>
+                                        <td>Up to 5 users</td>
+                                        <td>10 GB</td>
+                                        <td><span class="price">$24/month</span></td>
+                                        <td>Save $60/year</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Professional Annual</strong></td>
+                                        <td>Up to 25 users</td>
+                                        <td>100 GB</td>
+                                        <td><span class="price">$65/month</span></td>
+                                        <td>Save $168/year</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Business Annual</strong></td>
+                                        <td>Up to 100 users</td>
+                                        <td>500 GB</td>
+                                        <td><span class="price">$119/month</span></td>
+                                        <td>Save $360/year</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="pricing-enterprise">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Description</th>
+                                        <th>Included</th>
+                                        <th>Custom Pricing</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Unlimited Users</td>
+                                        <td>No limit on team size</td>
+                                        <td><span class="status-badge status-active">Yes</span></td>
+                                        <td>Contact Sales</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dedicated Support</td>
+                                        <td>24/7 dedicated success manager</td>
+                                        <td><span class="status-badge status-active">Yes</span></td>
+                                        <td>Included</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Custom Integrations</td>
+                                        <td>Tailored API integrations</td>
+                                        <td><span class="status-badge status-active">Yes</span></td>
+                                        <td>Custom Quote</td>
+                                    </tr>
+                                    <tr>
+                                        <td>On-Premise Deployment</td>
+                                        <td>Self-hosted solution option</td>
+                                        <td><span class="status-badge status-active">Available</span></td>
+                                        <td>Contact Sales</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">
+                <h3 class="accordion-title">Technical Support</h3>
+                <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <h4>We're Here to Help</h4>
+                    <p>Our comprehensive support system ensures you get help when you need it:</p>
+                    
+                    <div class="tab-container">
+                        <div class="tab-nav">
+                            <button class="tab-button active" data-tab="support-channels">Support Channels</button>
+                            <button class="tab-button" data-tab="support-sla">Service Levels</button>
+                            <button class="tab-button" data-tab="support-resources">Resources</button>
+                        </div>
+                        
+                        <div class="tab-content active" id="support-channels">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Channel</th>
+                                        <th>Availability</th>
+                                        <th>Response Time</th>
+                                        <th>Plan Access</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Email Support</td>
+                                        <td>24/7</td>
+                                        <td>Within 4 hours</td>
+                                        <td>All Plans</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Live Chat</td>
+                                        <td>9 AM - 6 PM EST</td>
+                                        <td>Under 5 minutes</td>
+                                        <td>Pro & Enterprise</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Phone Support</td>
+                                        <td>Business Hours</td>
+                                        <td>Immediate</td>
+                                        <td>Enterprise Only</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dedicated Manager</td>
+                                        <td>On-demand</td>
+                                        <td>Within 1 hour</td>
+                                        <td>Enterprise Only</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="support-sla">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Priority Level</th>
+                                        <th>Description</th>
+                                        <th>Response Time</th>
+                                        <th>Resolution Target</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Critical</td>
+                                        <td>System down, data loss, security breach</td>
+                                        <td>15 minutes</td>
+                                        <td>2 hours</td>
+                                    </tr>
+                                    <tr>
+                                        <td>High</td>
+                                        <td>Major feature not working, multiple users affected</td>
+                                        <td>1 hour</td>
+                                        <td>8 hours</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Medium</td>
+                                        <td>Minor feature issues, single user affected</td>
+                                        <td>4 hours</td>
+                                        <td>24 hours</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Low</td>
+                                        <td>General questions, feature requests</td>
+                                        <td>8 hours</td>
+                                        <td>72 hours</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="support-resources">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Content Type</th>
+                                        <th>Last Updated</th>
+                                        <th>Availability</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Knowledge Base</td>
+                                        <td>200+ Articles & Guides</td>
+                                        <td>Weekly</td>
+                                        <td>Public Access</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Video Tutorials</td>
+                                        <td>50+ Step-by-step Videos</td>
+                                        <td>Monthly</td>
+                                        <td>All Users</td>
+                                    </tr>
+                                    <tr>
+                                        <td>API Documentation</td>
+                                        <td>Complete Developer Docs</td>
+                                        <td>With each release</td>
+                                        <td>Pro & Enterprise</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Webinar Training</td>
+                                        <td>Live training sessions</td>
+                                        <td>Bi-weekly</td>
+                                        <td>All Users</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">
+                <h3 class="accordion-title">Integration & API</h3>
+                <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <h4>Seamless Integrations</h4>
+                    <p>Connect with your favorite tools and explore our comprehensive API capabilities:</p>
+                    
+                    <div class="tab-container">
+                        <div class="tab-nav">
+                            <button class="tab-button active" data-tab="integration-available">Available Integrations</button>
+                            <button class="tab-button" data-tab="integration-api">API Endpoints</button>
+                            <button class="tab-button" data-tab="integration-limits">Rate Limits</button>
+                        </div>
+                        
+                        <div class="tab-content active" id="integration-available">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Platform</th>
+                                        <th>Category</th>
+                                        <th>Sync Type</th>
+                                        <th>Setup Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Salesforce</td>
+                                        <td>CRM</td>
+                                        <td>Bi-directional</td>
+                                        <td>15 minutes</td>
+                                        <td><span class="status-badge status-active">Live</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>HubSpot</td>
+                                        <td>Marketing</td>
+                                        <td>Bi-directional</td>
+                                        <td>10 minutes</td>
+                                        <td><span class="status-badge status-active">Live</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>QuickBooks</td>
+                                        <td>Accounting</td>
+                                        <td>Import Only</td>
+                                        <td>20 minutes</td>
+                                        <td><span class="status-badge status-active">Live</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Shopify</td>
+                                        <td>E-commerce</td>
+                                        <td>Real-time Sync</td>
+                                        <td>5 minutes</td>
+                                        <td><span class="status-badge status-pending">Beta</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="integration-api">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Endpoint</th>
+                                        <th>Method</th>
+                                        <th>Description</th>
+                                        <th>Authentication</th>
+                                        <th>Version</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>/api/v1/users</td>
+                                        <td>GET, POST</td>
+                                        <td>User management operations</td>
+                                        <td>API Key</td>
+                                        <td>v1.2</td>
+                                    </tr>
+                                    <tr>
+                                        <td>/api/v1/data</td>
+                                        <td>GET, POST, PUT</td>
+                                        <td>Data manipulation and retrieval</td>
+                                        <td>OAuth 2.0</td>
+                                        <td>v1.2</td>
+                                    </tr>
+                                    <tr>
+                                        <td>/api/v1/reports</td>
+                                        <td>GET</td>
+                                        <td>Generate and download reports</td>
+                                        <td>API Key</td>
+                                        <td>v1.1</td>
+                                    </tr>
+                                    <tr>
+                                        <td>/api/v1/webhooks</td>
+                                        <td>POST, DELETE</td>
+                                        <td>Webhook configuration</td>
+                                        <td>OAuth 2.0</td>
+                                        <td>v1.0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-content" id="integration-limits">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Plan</th>
+                                        <th>Requests/Hour</th>
+                                        <th>Requests/Day</th>
+                                        <th>Concurrent Connections</th>
+                                        <th>Webhook Events</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Starter</td>
+                                        <td>1,000</td>
+                                        <td>10,000</td>
+                                        <td>5</td>
+                                        <td>100/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Professional</td>
+                                        <td>5,000</td>
+                                        <td>50,000</td>
+                                        <td>15</td>
+                                        <td>500/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Business</td>
+                                        <td>10,000</td>
+                                        <td>100,000</td>
+                                        <td>25</td>
+                                        <td>1,000/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Enterprise</td>
+                                        <td>Unlimited</td>
+                                        <td>Unlimited</td>
+                                        <td>100</td>
+                                        <td>10,000/day</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TabManager {
+            constructor(container) {
+                this.container = container;
+                this.init();
+            }
+
+            init() {
+                const tabButtons = this.container.querySelectorAll('.tab-button');
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const tabId = e.target.getAttribute('data-tab');
+                        this.switchTab(tabId, e.target);
+                    });
+                });
+            }
+
+            switchTab(targetTabId, clickedButton) {
+                const container = clickedButton.closest('.tab-container');
+                
+                // Remove active class from all buttons in this container
+                const tabButtons = container.querySelectorAll('.tab-button');
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Remove active class from all tab contents in this container
+                const tabContents = container.querySelectorAll('.tab-content');
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button
+                clickedButton.classList.add('active');
+                
+                // Add active class to target tab content
+                const targetContent = container.querySelector(`#${targetTabId}`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            }
+        }
+
+        class OdooAccordion {
+            constructor(containerSelector, options = {}) {
+                this.container = document.querySelector(containerSelector);
+                this.options = {
+                    allowMultiple: options.allowMultiple || false,
+                    defaultOpen: options.defaultOpen || null,
+                    ...options
+                };
+                
+                this.init();
+            }
+
+            init() {
+                if (!this.container) return;
+
+                // Add click event listeners to all headers
+                const headers = this.container.querySelectorAll('.accordion-header');
+                headers.forEach((header, index) => {
+                    header.addEventListener('click', () => this.toggleItem(index));
+                });
+
+                // Initialize tab managers for all tab containers
+                const tabContainers = this.container.querySelectorAll('.tab-container');
+                tabContainers.forEach(container => {
+                    new TabManager(container);
+                });
+
+                // Open default item if specified
+                if (this.options.defaultOpen !== null) {
+                    this.openItem(this.options.defaultOpen);
+                }
+            }
+
+            toggleItem(index) {
+                const items = this.container.querySelectorAll('.accordion-item');
+                const targetItem = items[index];
+                
+                if (!targetItem) return;
+
+                const isActive = targetItem.classList.contains('active');
+
+                // If not allowing multiple open items, close all others
+                if (!this.options.allowMultiple && !isActive) {
+                    this.closeAll();
+                }
+
+                // Toggle the target item
+                if (isActive) {
+                    this.closeItem(index);
+                } else {
+                    this.openItem(index);
+                }
+            }
+
+            openItem(index) {
+                const items = this.container.querySelectorAll('.accordion-item');
+                const item = items[index];
+                
+                if (item) {
+                    item.classList.add('active');
+                    const content = item.querySelector('.accordion-content');
+                    if (content) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    }
+                }
+            }
+
+            closeItem(index) {
+                const items = this.container.querySelectorAll('.accordion-item');
+                const item = items[index];
+                
+                if (item) {
+                    item.classList.remove('active');
+                    const content = item.querySelector('.accordion-content');
+                    if (content) {
+                        content.style.maxHeight = '0px';
+                    }
+                }
+            }
+
+            closeAll() {
+                const items = this.container.querySelectorAll('.accordion-item');
+                items.forEach((item, index) => {
+                    this.closeItem(index);
+                });
+            }
+
+            openAll() {
+                const items = this.container.querySelectorAll('.accordion-item');
+                items.forEach((item, index) => {
+                    this.openItem(index);
+                });
+            }
+
+            // Method to add new accordion item programmatically
+            addItem(title, content, position = -1) {
+                const item = document.createElement('div');
+                item.className = 'accordion-item';
+                item.innerHTML = `
+                    <div class="accordion-header">
+                        <h3 class="accordion-title">${title}</h3>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="accordion-body">
+                            ${content}
+                        </div>
+                    </div>
+                `;
+
+                if (position === -1 || position >= this.container.children.length) {
+                    this.container.appendChild(item);
+                } else {
+                    this.container.insertBefore(item, this.container.children[position]);
+                }
+
+                // Reinitialize event listeners
+                this.init();
+            }
+        }
+
+        // Initialize the accordion when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize with default options
+            const accordion = new OdooAccordion('#main-accordion', {
+                allowMultiple: false,  // Set to true to allow multiple items open
+                defaultOpen: 0         // Open first item by default, set to null for none
+            });
+
+            // Example of how to add items programmatically
+            // accordion.addItem('New Section', '<p>This is dynamically added content!</p>');
+        });
+    </script>
+</body>
+</html>
